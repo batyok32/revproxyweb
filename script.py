@@ -1,53 +1,88 @@
 import subprocess
 
+
+class bcolors:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
+
 print(
-    """
-WELCOME TO SCRIPT!
-JEMI 7 ADIM.
-BIR DINE 3 ADIMDE DOMAINY YAZMALY.
+    f"""
+{bcolors.BOLD}{bcolors.HEADER}
+{bcolors.UNDERLINE}Parimatch acmak scripty.\n{bcolors.ENDC}
+1. Yazmaly zatlar bar.
+2. Garasyn ozi duzleyar.
+3. Start diyende enter basmaly.
+{bcolors.ENDC}
 """
 )
-
-# NEED TO DO
-# CLEAN 80, 81, 443 port
-# GET DOMAIN CERTIFICATE AUTOMATICALLY
-
+# parimatch.i9.ar
+# datadome.i9.ar
+# apidatadome.i9.ar
 inp = input("START >>>")
+domain = input("\n\nDomain: ")
+domain = domain.strip()
+datadomedomain = input("\n\nDatadome domain: ")
+datadomedomain = datadomedomain.strip()
+datadomedomainapi = input("\n\nDatadome api domain: ")
+datadomedomainapi = datadomedomainapi.strip()
 
+print(
+    f"""
+-----------------------------------------------------------------------------
+{bcolors.WARNING} Process baslady sabyrly bolyn...{bcolors.ENDC}
+-----------------------------------------------------------------------------
+"""
+)
 subprocess.run(
     ["apt-get update -y && apt-get upgrade -y"], stdout=subprocess.PIPE, shell=True
 )
-print("\n1. UPDATED")
-subprocess.run(
-    ["apt-get install python3-certbot-nginx python3-pip pipx python3.8-venv nginx -y"],
-    stdout=subprocess.PIPE,
-    shell=True,
-)
+
 subprocess.run(
     ["systemctl stop apache2"],
     stdout=subprocess.PIPE,
     shell=True,
 )
-
-print("\n2. INSTALLED EVERYTHING")
 subprocess.run(
     ["apt-get install python3-certbot-nginx python3-pip pipx python3.8-venv nginx -y"],
     stdout=subprocess.PIPE,
     shell=True,
 )
-print("\n3. GETTING DOMAIN CERTIFICATE")
-domain = input("\n\nDomain: ")
-domain = domain.strip()
-subprocess.run([f"certbot --nginx -d {domain}"], stdout=subprocess.PIPE, shell=True)
-# Get domain certificate
 
+print(
+    f"""
+-----------------------------------------------------------------------------
+{bcolors.WARNING} Bratok sutayda yazmaly zatlar bar{bcolors.ENDC}
+digitalocean@gmail.com
+A
+Y
+-----------------------------------------------------------------------------
+"""
+)
+
+# CERTBOT
+subprocess.run([f"certbot --nginx --redirect -d {domain}"], shell=True)
+
+
+print(
+    f"""
+-----------------------------------------------------------------------------
+{bcolors.WARNING} Molodes inni dalse sabyrly bol...{bcolors.ENDC}
+-----------------------------------------------------------------------------
+"""
+)
 # NGINX
-print("\n4. INSTALLING NGINX")
 f = open("/etc/nginx/sites-available/default", "w")
 f.write(
     f"""
 server {{
-    listen 80;
     listen 443 ssl;
     server_name {domain};
 
@@ -75,14 +110,57 @@ server {{
     }}
  
 }}
+
+server {{ 
+    listen 80; 
+    server_name {domain};
+    return 301 https://{domain}$request_uri; 
+}}
+
+server {{
+    listen 80;
+    server_name {datadomedomain};
+
+    location / {{
+        proxy_set_header X-Proxy-Client-IP $remote_addr;
+        proxy_set_header X-Proxy-Original-Host js.datadome.co; 
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass http://127.0.0.1:82/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }}
+}}
+
+server {{
+    listen 80;
+    server_name {datadomedomainapi};
+
+    location / {{
+        proxy_set_header X-Proxy-Client-IP $remote_addr;
+        proxy_set_header X-Proxy-Original-Host api-js.datadome.co; 
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass http://127.0.0.1:83/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }}
+}}
 """
 )
 f.close()
-print("WROTE TO FILE")
 
+subprocess.run([f"certbot --nginx --redirect -d {datadomedomain}"], shell=True)
+subprocess.run([f"certbot --nginx --redirect -d {datadomedomainapi}"], shell=True)
+
+
+# Get domain certificate
 subprocess.run(["systemctl daemon-reload"], stdout=subprocess.PIPE, shell=True)
 subprocess.run(["systemctl restart nginx"], stdout=subprocess.PIPE, shell=True)
-print("\n5. RESTARTED NGINX")
 
 # MITM PROXY
 subprocess.run(
@@ -90,7 +168,6 @@ subprocess.run(
 )
 subprocess.run(["python3 -m pipx ensurepath"], stdout=subprocess.PIPE, shell=True)
 subprocess.run(["pipx install mitmproxy"], stdout=subprocess.PIPE, shell=True)
-print("\n6. INSTALLED MITMPROXY")
 
 
 f = open("/etc/systemd/system/mit.service", "w")
@@ -103,7 +180,7 @@ After=network.target
 [Service]
 Type=simple
 User=root
-ExecStart=/root/.local/bin/mitmdump -p 81 --mode reverse:https://pm-a6cd1a28.com --set block_global=false
+ExecStart=/root/.local/bin/mitmdump -p 81 --mode reverse:https://pm-a6cd1a28.com --set block_global=false -s /root/filter.py
 Restart=on-failure
 
 [Install]
@@ -111,12 +188,76 @@ WantedBy=multi-user.target
 """
 )
 f.close()
-print("WROTE MITMPROXY")
+
+f = open("/etc/systemd/system/mit-datadome.service", "w")
+f.write(
+    f"""
+[Unit]
+Description=MITM PROXY
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/.local/bin/mitmdump -p 82 --mode reverse:https://js.datadome.co --set block_global=false -s /root/filter.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+"""
+)
+f.close()
+
+f = open("/etc/systemd/system/mit-datadome-api.service", "w")
+f.write(
+    f"""
+[Unit]
+Description=MITM PROXY
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/.local/bin/mitmdump -p 83 --mode reverse:https://api-js.datadome.co --set block_global=false -s /root/filter.py
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+"""
+)
+f.close()
+
+# Filter py
+f = open("/root/filter.py", "w")
+f.write(
+    f"""
+from mitmproxy import http
+
+def response(flow: http.HTTPFlow) -> None:
+    if flow.response and flow.response.content:
+        flow.response.content = flow.response.content.replace(
+            b"js.datadome.co", b"{datadomedomain}"
+        )
+        flow.response.content = flow.response.content.replace(
+            b"api-js.datadome.co", b"{datadomedomainapi}"
+        )
+       
+"""
+)
+f.close()
 
 subprocess.run(["systemctl daemon-reload"], stdout=subprocess.PIPE, shell=True)
 subprocess.run(["systemctl enable mit"], stdout=subprocess.PIPE, shell=True)
 subprocess.run(["systemctl restart mit"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(["systemctl enable mit-datadome"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(["systemctl restart mit-datadome"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(
+    ["systemctl enable mit-datadome-api"], stdout=subprocess.PIPE, shell=True
+)
+subprocess.run(
+    ["systemctl restart mit-datadome-api"], stdout=subprocess.PIPE, shell=True
+)
 subprocess.run(["systemctl restart nginx"], stdout=subprocess.PIPE, shell=True)
-print("\n7. RESTARTED EVERYTHING")
 
+print(f"\n\n{bcolors.OKGREEN}Process gutardy!{bcolors.ENDC}")
 print(f"\n\nBOLDY WEBSITE TAYYAR - https://{domain}")

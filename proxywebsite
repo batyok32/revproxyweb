@@ -1,0 +1,71 @@
+1. Get domain and certificate
+apt-get install python3-certbot-nginx -y
+certbot --nginx -d note.bailon.ga
+
+Result:
+/etc/letsencrypt/live/tm1.bailon.ga/fullchain.pem
+/etc/letsencrypt/live/tm1.bailon.ga/privkey.pem
+
+2. NGINX
+apt-get install nginx
+nano /etc/nginx/sites-available/default
+----------
+server {
+    listen 80;
+    listen 443 ssl;
+    server_name pm.bailon.ga;
+
+    ssl on;
+    ssl_certificate /etc/letsencrypt/live/pm.bailon.ga/fullchain.pem; # Проверьте точные пути к сертификату, ключу  и их права
+    ssl_certificate_key /etc/letsencrypt/live/pm.bailon.ga/privkey.pem; # на чтение для пользователя под которым запущен nginx
+    ssl_session_timeout 5m;
+    ssl_session_cache shared:SSL:50m;
+    ssl_protocols SSLv3 SSLv2 TLSv1 TLSv1.1 TLSv1.2; # Настроить по этому протоколу
+    ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        proxy_set_header X-Proxy-Token doih302id1hd9g7639d8h23198dj09dwd;
+        proxy_set_header X-Proxy-Client-IP $remote_addr;
+        proxy_set_header X-Proxy-Original-Host pm-a6cd1a28.com; 
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_pass http://127.0.0.1:81/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+
+    }
+ 
+}
+systemctl restart nginx
+systemctl status nginx
+---------
+
+3. MitmProxy.py
+apt-get -y install python3-pip
+python3 -m pip install --user pipx
+python3 -m pipx ensurepath
+apt install pipx
+apt install python3.8-venv
+pipx install mitmproxy
+
+nano /etc/systemd/system/mit.service
+[Unit]
+Description=MITM PROXY
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/root/.local/bin/mitmdump -p 81 --mode reverse:https://pm-a6cd1a28.com --set block_global=false
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+
+systemctl enable mit
+systemctl restart mit
+systemctl status mit
+systemctl daemon-reload
