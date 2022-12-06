@@ -1,45 +1,11 @@
-import subprocess
+filename = "mit-betman"
+foreign = "betman.c2.3oaks.com"
+port = "86"
+our = "oaks.bailon.ga"
 
+x = f"""
+nano /etc/systemd/system/{filename}.service
 
-# filename = "mit"
-# foreign = "pm-a6cd1a28.com"
-# port = "81"
-# our = "pmm.bailon.ga"
-
-filename = "mit-datadome"
-foreign = "js.datadome.co"
-port = "82"
-our = "datadome.i9.ar"
-
-
-# filename = "mit-datadome-api"
-# foreign = "api-js.datadome.co"
-# port = "83"
-# our = "apidatadome.i9.ar"
-
-# filename = "mit-programmatic"
-# foreign = "parimatch-dk1.pragmaticplay.net"
-# port = "84"
-# our = "pragrammatic.bailon.ga"
-
-# filename = "Oaks"
-# foreign = "alfred.c2.3oaks.com"
-# port = "85"
-# our = "oaks.bailon.ga"
-
-# filename = "mit-betmap"
-# foreign = "betman.c2.3oaks.com"
-# port = "86"
-# our = "betman.bailon.ga"
-
-# filename = "mit-oackstatic"
-# foreign = "static.3oaks.com"
-# port = "87"
-# our = "staticoaks.bailon.ga"
-
-# SYSTEMD
-f = open(f"/etc/systemd/system/{filename}.service", "w")
-text = f"""
 [Unit]
 Description={filename.upper()}
 After=network.target
@@ -52,27 +18,20 @@ Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
-"""
-f.write(text)
-f.close()
 
-print("\nSYSTEMD WROTE")
-# FILTER PY
-f = open(f"/root/filter.py", "a+")
-text = f"""
+
+nano /root/filter.py
+
+from mitmproxy import http
+
+def response(flow: http.HTTPFlow) -> None:
+    if flow.response and flow.response.content:
         flow.response.content = flow.response.content.replace(
             b"{foreign}", b"{our}"
         )
-"""
+       
+nano /etc/nginx/sites-available/default 
 
-f.write(text)
-f.close
-
-print("\nFILTER.pY WROTE")
-# NGINX
-f = open(f"/etc/nginx/sites-available/default", "a+")
-
-text = f"""
 server {{
     listen 80;
     server_name {our};
@@ -89,30 +48,12 @@ server {{
         proxy_set_header Connection "upgrade";
     }}
 }}
-"""
-
-f.write(text)
-f.close
-
-print("\nNGINX WROTE")
 
 
-# CERTBOT
-subprocess.run([f"certbot --nginx --redirect -d {our}"], shell=True)
+certbot --nginx -d {our}
 
-print("\nCERTBOT WROTE")
 
-# RESTART EVERYTHING
-subprocess.run(["systemctl daemon-reload"], shell=True)
-subprocess.run(["systemctl restart nginx"], shell=True)
-subprocess.run(["systemctl restart mit"], shell=True)
-subprocess.run([f"systemctl restart {filename}"], shell=True)
-
-print("\nRESTARTED DONE")
-
-print("\nWRITE THIS TO /etc/nginx/sites-available/default removing old one")
-print(
-    f"""
+nano /etc/nginx/sites-available/default 
 server {{
     listen 443 ssl;
     server_name {our};
@@ -144,5 +85,14 @@ server {{
     server_name {our};
     return 301 https://{our}$request_uri; 
 }}
+
+systemctl daemon-reload
+systemctl restart nginx 
+systemctl restart mit   
+systemctl restart {filename} 
 """
+f = open(
+    f"/home/batyr/projects/SSR/proxywebsite-script/instructions/{filename}.txt", "w"
 )
+f.write(x)
+f.close()

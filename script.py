@@ -27,12 +27,18 @@ print(
 # datadome.i9.ar
 # apidatadome.i9.ar
 inp = input("START >>>")
-domain = input("\n\nDomain: ")
+domain = input("\nDomain (parimatch.i9.ar): ")
 domain = domain.strip()
-datadomedomain = input("\n\nDatadome domain: ")
+datadomedomain = input("\nDatadome domain (datadome.i9.ar): ")
 datadomedomain = datadomedomain.strip()
-datadomedomainapi = input("\n\nDatadome api domain: ")
+datadomedomainapi = input("\nDatadome api domain (apidatadome.i9.ar): ")
 datadomedomainapi = datadomedomainapi.strip()
+if not domain:
+    domain = "parimatch.i9.ar"
+if not datadomedomain:
+    domain = "datadome.i9.ar"
+if not datadomedomainapi:
+    domain = "apidatadome.i9.ar"
 
 print(
     f"""
@@ -41,18 +47,22 @@ print(
 -----------------------------------------------------------------------------
 """
 )
-subprocess.run(
-    ["apt-get update -y && apt-get upgrade -y"], stdout=subprocess.PIPE, shell=True
-)
+subprocess.run(["apt-get update -y && apt-get upgrade -y"], shell=True)
 
 subprocess.run(
     ["systemctl stop apache2"],
-    stdout=subprocess.PIPE,
+    shell=True,
+)
+subprocess.run(
+    ["apt-get remove nginx -y"],
     shell=True,
 )
 subprocess.run(
     ["apt-get install python3-certbot-nginx python3-pip pipx python3.8-venv nginx -y"],
-    stdout=subprocess.PIPE,
+    shell=True,
+)
+subprocess.run(
+    ["rm -rf /etc/nginx/sites-available/default && touch  /etc/nginx/sites-available/default"],
     shell=True,
 )
 
@@ -154,20 +164,20 @@ server {{
 )
 f.close()
 
+
+
 subprocess.run([f"certbot --nginx --redirect -d {datadomedomain}"], shell=True)
 subprocess.run([f"certbot --nginx --redirect -d {datadomedomainapi}"], shell=True)
 
 
 # Get domain certificate
-subprocess.run(["systemctl daemon-reload"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["systemctl restart nginx"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(["systemctl daemon-reload"], shell=True)
+subprocess.run(["systemctl restart nginx"], shell=True)
 
 # MITM PROXY
-subprocess.run(
-    ["python3 -m pip install --user pipx"], stdout=subprocess.PIPE, shell=True
-)
-subprocess.run(["python3 -m pipx ensurepath"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["pipx install mitmproxy"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(["python3 -m pip install --user pipx"], shell=True)
+subprocess.run(["python3 -m pipx ensurepath"], shell=True)
+subprocess.run(["pipx install mitmproxy"], shell=True)
 
 
 f = open("/etc/systemd/system/mit.service", "w")
@@ -246,18 +256,14 @@ def response(flow: http.HTTPFlow) -> None:
 )
 f.close()
 
-subprocess.run(["systemctl daemon-reload"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["systemctl enable mit"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["systemctl restart mit"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["systemctl enable mit-datadome"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(["systemctl restart mit-datadome"], stdout=subprocess.PIPE, shell=True)
-subprocess.run(
-    ["systemctl enable mit-datadome-api"], stdout=subprocess.PIPE, shell=True
-)
-subprocess.run(
-    ["systemctl restart mit-datadome-api"], stdout=subprocess.PIPE, shell=True
-)
-subprocess.run(["systemctl restart nginx"], stdout=subprocess.PIPE, shell=True)
+subprocess.run(["systemctl daemon-reload"], shell=True)
+subprocess.run(["systemctl enable mit"], shell=True)
+subprocess.run(["systemctl restart mit"], shell=True)
+subprocess.run(["systemctl enable mit-datadome"], shell=True)
+subprocess.run(["systemctl restart mit-datadome"], shell=True)
+subprocess.run(["systemctl enable mit-datadome-api"], shell=True)
+subprocess.run(["systemctl restart mit-datadome-api"], shell=True)
+subprocess.run(["systemctl restart nginx"], shell=True)
 
 print(f"\n\n{bcolors.OKGREEN}Process gutardy!{bcolors.ENDC}")
 print(f"\n\nBOLDY WEBSITE TAYYAR - https://{domain}")
