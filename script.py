@@ -17,15 +17,10 @@ print(
     f"""
 {bcolors.BOLD}{bcolors.HEADER}
 {bcolors.UNDERLINE}Parimatch acmak scripty.\n{bcolors.ENDC}
-1. Yazmaly zatlar bar.
-2. Garasyn ozi duzleyar.
-3. Start diyende enter basmaly.
+1. Hiczat etmek gerek dal dine domeinlary beraymeli.
 {bcolors.ENDC}
 """
 )
-# parimatch.i9.ar
-# datadome.i9.ar
-# apidatadome.i9.ar
 inp = input("START >>>")
 domain = input("\nDomain (parimatch.i9.ar): ")
 domain = domain.strip()
@@ -33,6 +28,7 @@ datadomedomain = input("\nDatadome domain (datadome.i9.ar): ")
 datadomedomain = datadomedomain.strip()
 datadomedomainapi = input("\nDatadome api domain (apidatadome.i9.ar): ")
 datadomedomainapi = datadomedomainapi.strip()
+
 if not domain:
     domain = "parimatch.i9.ar"
 if not datadomedomain:
@@ -66,28 +62,11 @@ subprocess.run(
     shell=True,
 )
 
-print(
-    f"""
------------------------------------------------------------------------------
-{bcolors.WARNING} Bratok sutayda yazmaly zatlar bar{bcolors.ENDC}
-digitalocean@gmail.com
-A
-Y
------------------------------------------------------------------------------
-"""
-)
 
 # CERTBOT
-subprocess.run([f"certbot --nginx --redirect -d {domain}"], shell=True)
+subprocess.run([f"certbot -n --nginx --redirect -d {domain} -m digitalocean@gmail.com --agree-tos"], shell=True)
 
 
-print(
-    f"""
------------------------------------------------------------------------------
-{bcolors.WARNING} Molodes inni dalse sabyrly bol...{bcolors.ENDC}
------------------------------------------------------------------------------
-"""
-)
 # NGINX
 f = open("/etc/nginx/sites-available/default", "w")
 f.write(
@@ -166,8 +145,8 @@ f.close()
 
 
 
-subprocess.run([f"certbot --nginx --redirect -d {datadomedomain}"], shell=True)
-subprocess.run([f"certbot --nginx --redirect -d {datadomedomainapi}"], shell=True)
+subprocess.run([f"certbot -n --nginx --redirect -d {datadomedomain} -m digitalocean@gmail.com --agree-tos"], shell=True)
+subprocess.run([f"certbot -n --nginx --redirect -d {datadomedomainapi} -m digitalocean@gmail.com --agree-tos"], shell=True)
 
 
 # Get domain certificate
